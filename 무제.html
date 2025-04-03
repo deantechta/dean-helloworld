@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>추첨 프로그램</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    .input-container {
+      display: grid;
+      grid-template-columns: repeat(2, auto);
+      gap: 5px 15px;
+      margin-bottom: 20px;
+    }
+    .input-container input {
+      padding: 5px;
+      font-size: 14px;
+      width: 200px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    #result {
+      margin-top: 30px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+  </style>
+</head>
+<body>
+  <h1>랜덤 추첨기</h1>
+
+  <div class="input-container" id="inputContainer">
+    <!-- 참가자 입력 필드 10개 -->
+    <input type="text" placeholder="참가자 1" />
+    <input type="text" placeholder="참가자 2" />
+    <input type="text" placeholder="참가자 3" />
+    <input type="text" placeholder="참가자 4" />
+    <input type="text" placeholder="참가자 5" />
+    <input type="text" placeholder="참가자 6" />
+    <input type="text" placeholder="참가자 7" />
+    <input type="text" placeholder="참가자 8" />
+    <input type="text" placeholder="참가자 9" />
+    <input type="text" placeholder="참가자 10" />
+  </div>
+
+  <button onclick="drawWinner()">추첨하기</button>
+  <button onclick="exportToExcel()">엑셀로 내보내기</button>
+  <div id="result"></div>
+
+  <script>
+    const results = [];
+    const startTime = new Date();
+
+    function drawWinner() {
+      const inputs = Array.from(document.querySelectorAll('#inputContainer input'));
+      const names = inputs.map(input => input.value.trim()).filter(name => name !== "");
+
+      if (names.length === 0) {
+        alert("최소 한 명 이상의 참가자를 입력해 주세요.");
+        return;
+      }
+
+      const randomIndex = Math.floor(Math.random() * names.length);
+      const winner = names[randomIndex];
+      document.getElementById('result').textContent = `🎉 당첨자: ${winner} 🎉`;
+      results.push({ timestamp: new Date().toLocaleString(), winner });
+    }
+
+    function exportToExcel() {
+      let csvContent = "data:text/csv;charset=utf-8,시간,당첨자\n";
+      results.forEach(row => {
+        csvContent += `${row.timestamp},${row.winner}\n`;
+      });
+
+      const pad = (n) => n.toString().padStart(2, '0');
+      const yyyy = startTime.getFullYear();
+      const MM = pad(startTime.getMonth() + 1);
+      const dd = pad(startTime.getDate());
+      const hh = pad(startTime.getHours());
+      const mm = pad(startTime.getMinutes());
+      const ss = pad(startTime.getSeconds());
+      const filename = `draw_results_${yyyy}${MM}${dd}_${hh}${mm}${ss}.csv`;
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+</body>
+</html>
