@@ -115,33 +115,144 @@
       75% { background-color: #f0fff5; }
       100% { background-color: #f0f0f0; }
     }
+
+    /* 참가자 수 입력 화면 스타일 */
+    #setupScreen {
+      text-align: center;
+      padding: 40px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+    }
+
+    #participantCount {
+      font-size: 20px;
+      padding: 12px 20px;
+      width: 150px;
+      text-align: center;
+      border: 2px solid #3498db;
+      border-radius: 8px;
+      margin: 10px;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    #participantCount:focus {
+      border-color: #2980b9;
+      box-shadow: 0 0 8px rgba(52, 152, 219, 0.3);
+    }
+
+    #setupScreen button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 30px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    #setupScreen button:hover {
+      background-color: #2980b9;
+    }
+
+    #mainScreen {
+      text-align: center;
+    }
   </style>
 </head>
 <body>
   <h1>랜덤 추첨기</h1>
 
-  <div class="input-container" id="inputContainer">
-    <!-- 참가자 입력 필드 10개 -->
-    <input type="text" placeholder="참가자 1" />
-    <input type="text" placeholder="참가자 2" />
-    <input type="text" placeholder="참가자 3" />
-    <input type="text" placeholder="참가자 4" />
-    <input type="text" placeholder="참가자 5" />
-    <input type="text" placeholder="참가자 6" />
-    <input type="text" placeholder="참가자 7" />
-    <input type="text" placeholder="참가자 8" />
-    <input type="text" placeholder="참가자 9" />
-    <input type="text" placeholder="참가자 10" />
+  <!-- 1단계: 참가자 수 입력 화면 -->
+  <div id="setupScreen">
+    <p style="font-size: 18px; margin-bottom: 15px;">참가자가 몇 명인가요?</p>
+    <input type="number" id="participantCount" min="1" max="10" placeholder="숫자 입력" />
+    <button onclick="createInputs()">확인</button>
+    <p style="font-size: 12px; color: #666; margin-top: 10px;">(최대 10명)</p>
   </div>
 
-  <button onclick="drawWinner()">추첨하기</button>
-  <button onclick="exportToExcel()">엑셀로 내보내기</button>
-  <div id="result"></div>
+  <!-- 2단계: 추첨 화면 (처음에는 숨겨짐) -->
+  <div id="mainScreen" style="display: none;">
+    <div class="input-container" id="inputContainer">
+      <!-- 여기에 입력 필드들이 동적으로 생성됩니다 -->
+    </div>
+
+    <button onclick="drawWinner()">추첨하기</button>
+    <button onclick="exportToExcel()">엑셀로 내보내기</button>
+    <button onclick="resetSetup()" style="background-color: #95a5a6; font-size: 14px; padding: 8px 15px;">참가자 수 변경</button>
+    <div id="result"></div>
+  </div>
 
   <script>
     const results = [];
     const startTime = new Date();
     let isDrawing = false; // 추첨 중 중복 클릭 방지
+
+    // 참가자 입력 필드 동적 생성 함수
+    function createInputs() {
+      const count = parseInt(document.getElementById('participantCount').value);
+
+      // 유효성 검사
+      if (!count || count < 1 || count > 10) {
+        alert("1명에서 10명 사이의 숫자를 입력해주세요.");
+        return;
+      }
+
+      // 입력 필드 생성
+      const container = document.getElementById('inputContainer');
+      container.innerHTML = ''; // 기존 내용 지우기
+
+      for (let i = 1; i <= count; i++) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = `참가자 ${i}`;
+        container.appendChild(input);
+      }
+
+      // 화면 전환
+      document.getElementById('setupScreen').style.display = 'none';
+      document.getElementById('mainScreen').style.display = 'block';
+
+      // 첫 번째 입력 필드에 포커스
+      if (container.querySelector('input')) {
+        container.querySelector('input').focus();
+      }
+    }
+
+    // 참가자 수 변경 (처음으로 돌아가기)
+    function resetSetup() {
+      // 결과 초기화 여부 확인
+      if (results.length > 0) {
+        if (!confirm("추첨 결과가 초기화됩니다. 계속하시겠습니까?")) {
+          return;
+        }
+        results.length = 0; // 결과 배열 초기화
+      }
+
+      // 화면 전환
+      document.getElementById('mainScreen').style.display = 'none';
+      document.getElementById('setupScreen').style.display = 'block';
+
+      // 입력 값 초기화
+      document.getElementById('participantCount').value = '';
+      document.getElementById('result').textContent = '';
+      document.getElementById('result').className = '';
+    }
+
+    // Enter 키로 확인 버튼 실행
+    document.addEventListener('DOMContentLoaded', function() {
+      const participantInput = document.getElementById('participantCount');
+      if (participantInput) {
+        participantInput.addEventListener('keypress', function(event) {
+          if (event.key === 'Enter') {
+            createInputs();
+          }
+        });
+      }
+    });
 
     // 색종이 효과 생성 함수
     function createConfetti() {
