@@ -216,6 +216,125 @@
     #mainScreen {
       text-align: center;
     }
+
+    /* 인사이트 패널 스타일 */
+    #insightPanel {
+      display: none;
+      margin-top: 20px;
+      padding: 25px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      max-width: 500px;
+      width: 100%;
+      text-align: left;
+    }
+
+    #insightPanel h2 {
+      text-align: center;
+      margin-bottom: 15px;
+      color: #2c3e50;
+      font-size: 20px;
+    }
+
+    .insight-stat {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 15px;
+    }
+
+    .insight-stat:last-child {
+      border-bottom: none;
+    }
+
+    .insight-label {
+      color: #7f8c8d;
+      font-weight: bold;
+    }
+
+    .insight-value {
+      color: #2c3e50;
+      font-weight: bold;
+    }
+
+    .insight-history {
+      margin-top: 15px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .insight-history table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .insight-history th {
+      background-color: #3498db;
+      color: white;
+      padding: 8px 10px;
+      text-align: left;
+    }
+
+    .insight-history td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .insight-history tr:nth-child(even) {
+      background-color: #f8f9fa;
+    }
+
+    .insight-freq-bar {
+      display: flex;
+      align-items: center;
+      margin: 5px 0;
+    }
+
+    .insight-freq-name {
+      width: 100px;
+      font-size: 14px;
+      color: #2c3e50;
+      text-align: right;
+      padding-right: 10px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .insight-freq-fill {
+      height: 20px;
+      background: linear-gradient(90deg, #3498db, #2ecc71);
+      border-radius: 4px;
+      min-width: 4px;
+      transition: width 0.3s ease;
+    }
+
+    .insight-freq-count {
+      margin-left: 8px;
+      font-size: 13px;
+      color: #7f8c8d;
+    }
+
+    #insightToggleBtn {
+      background-color: #9b59b6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+    }
+
+    #insightToggleBtn:hover {
+      background-color: #8e44ad;
+    }
+
+    .no-data-msg {
+      text-align: center;
+      color: #95a5a6;
+      font-size: 14px;
+      padding: 20px;
+    }
   </style>
 </head>
 <body>
@@ -237,8 +356,15 @@
 
     <button onclick="drawWinner()">추첨하기</button>
     <button onclick="exportToExcel()">엑셀로 내보내기</button>
+    <button id="insightToggleBtn" onclick="toggleInsight()">통계 보기</button>
     <button onclick="resetSetup()" style="background-color: #95a5a6; font-size: 14px; padding: 8px 15px;">참가자 수 변경</button>
     <div id="result"></div>
+
+    <!-- 인사이트 패널 -->
+    <div id="insightPanel">
+      <h2>📊 추첨 통계</h2>
+      <div id="insightContent"></div>
+    </div>
   </div>
 
   <script>
@@ -416,6 +542,12 @@
       setTimeout(() => {
         document.body.classList.remove('celebration-bg');
       }, 2000);
+
+      // 인사이트 패널이 열려있으면 자동 업데이트
+      const insightPanel = document.getElementById('insightPanel');
+      if (insightPanel.style.display === 'block') {
+        updateInsight();
+      }
     }
 
     function drawWinner() {
@@ -453,6 +585,70 @@
       setTimeout(() => {
         isDrawing = false;
       }, 5500);
+    }
+
+    // 인사이트 패널 토글
+    function toggleInsight() {
+      const panel = document.getElementById('insightPanel');
+      const btn = document.getElementById('insightToggleBtn');
+
+      if (panel.style.display === 'none' || panel.style.display === '') {
+        updateInsight();
+        panel.style.display = 'block';
+        btn.textContent = '통계 닫기';
+      } else {
+        panel.style.display = 'none';
+        btn.textContent = '통계 보기';
+      }
+    }
+
+    // 인사이트 데이터 업데이트
+    function updateInsight() {
+      const container = document.getElementById('insightContent');
+
+      if (results.length === 0) {
+        container.innerHTML = '<p class="no-data-msg">아직 추첨 기록이 없습니다.<br>추첨을 진행해 주세요!</p>';
+        return;
+      }
+
+      // 당첨 횟수 집계
+      const freq = {};
+      results.forEach(r => {
+        freq[r.winner] = (freq[r.winner] || 0) + 1;
+      });
+
+      // 가장 많이 당첨된 사람
+      const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+      const maxCount = sorted[0][1];
+      const topWinner = sorted[0][0];
+
+      // 통계 요약
+      let html = '';
+      html += '<div class="insight-stat"><span class="insight-label">총 추첨 횟수</span><span class="insight-value">' + results.length + '회</span></div>';
+      html += '<div class="insight-stat"><span class="insight-label">참여 인원 수</span><span class="insight-value">' + Object.keys(freq).length + '명</span></div>';
+      html += '<div class="insight-stat"><span class="insight-label">최다 당첨자</span><span class="insight-value">' + topWinner + ' (' + maxCount + '회)</span></div>';
+
+      // 당첨 빈도 차트
+      html += '<h3 style="margin-top:18px;margin-bottom:8px;font-size:15px;color:#2c3e50;">당첨 빈도</h3>';
+      sorted.forEach(([name, count]) => {
+        const pct = (count / maxCount) * 100;
+        html += '<div class="insight-freq-bar">';
+        html += '<span class="insight-freq-name">' + name + '</span>';
+        html += '<div class="insight-freq-fill" style="width:' + pct + '%;"></div>';
+        html += '<span class="insight-freq-count">' + count + '회</span>';
+        html += '</div>';
+      });
+
+      // 추첨 이력 테이블
+      html += '<h3 style="margin-top:18px;margin-bottom:8px;font-size:15px;color:#2c3e50;">추첨 이력</h3>';
+      html += '<div class="insight-history"><table>';
+      html += '<tr><th>#</th><th>시간</th><th>당첨자</th></tr>';
+      results.forEach((r, i) => {
+        html += '<tr><td>' + (i + 1) + '</td><td>' + r.timestamp + '</td><td>' + r.winner + '</td></tr>';
+      });
+      html += '</table></div>';
+
+      container.innerHTML = html;
     }
 
     function exportToExcel() {
