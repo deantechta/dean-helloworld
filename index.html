@@ -298,6 +298,50 @@
       padding: 10px 5px;
       margin-bottom: 10px;
     }
+
+    /* 당첨 인원 수 입력 영역 */
+    .winner-count-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+    }
+    #winnerCount {
+      font-size: 20px;
+      padding: 12px 20px;
+      width: 150px;
+      text-align: center;
+      border: 2px solid #e67e22;
+      border-radius: 8px;
+      margin: 10px;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+    #winnerCount:focus {
+      border-color: #ca6f1e;
+      box-shadow: 0 0 8px rgba(230, 126, 34, 0.3);
+    }
+
+    /* 다중 당첨자 목록 */
+    .winner-list {
+      list-style: none;
+      padding: 0;
+      margin: 10px auto 0;
+      display: inline-block;
+      text-align: left;
+    }
+    .winner-list-item {
+      font-size: 20px;
+      font-weight: bold;
+      color: #2c3e50;
+      padding: 4px 10px;
+      animation: winnerAppear 0.5s ease-out both;
+    }
+    .winner-list-title {
+      font-size: 28px;
+      font-weight: bold;
+      color: #ff6b6b;
+      animation: winnerAppear 0.6s ease-out, glow 1.5s ease-in-out infinite;
+    }
   </style>
 </head>
 <body>
@@ -309,8 +353,17 @@
     <!-- 수동 입력 -->
     <p style="font-size: 18px; margin-bottom: 15px;">참가자가 몇 명인가요?</p>
     <input type="number" id="participantCount" min="1" max="2000" placeholder="숫자 입력" />
-    <button onclick="createInputs()">확인</button>
     <p style="font-size: 12px; color: #666; margin-top: 5px;">(최대 2000명)</p>
+
+    <!-- 당첨 인원 수 -->
+    <div class="winner-count-section">
+      <p style="font-size: 18px; margin-bottom: 15px;">당첨 인원은 몇 명인가요?</p>
+      <input type="number" id="winnerCount" min="1" max="50" value="1" />
+      <p style="font-size: 12px; color: #666; margin-top: 5px;">(최소 1명, 최대 50명)</p>
+    </div>
+
+    <br/>
+    <button onclick="createInputs()">확인</button>
 
     <div class="divider">또는</div>
 
@@ -358,8 +411,14 @@
         ? prefill.length
         : parseInt(document.getElementById('participantCount').value);
 
-      if (!prefill && (!count || count < 1 || count > 60)) {
-        alert("1명에서 60명 사이의 숫자를 입력해주세요.");
+      if (!prefill && (!count || count < 1 || count > 2000)) {
+        alert("1명에서 2000명 사이의 숫자를 입력해주세요.");
+        return;
+      }
+
+      const winnerCount = parseInt(document.getElementById('winnerCount').value);
+      if (!winnerCount || winnerCount < 1 || winnerCount > 50) {
+        alert("당첨 인원은 1명에서 50명 사이로 입력해주세요.");
         return;
       }
 
@@ -416,9 +475,9 @@
             return;
           }
 
-          if (names.length > 60) {
-            alert(`참가자가 ${names.length}명입니다. 최대 60명까지만 지원하므로 앞에서 60명만 불러옵니다.`);
-            names.splice(60);
+          if (names.length > 2000) {
+            alert(`참가자가 ${names.length}명입니다. 최대 2000명까지만 지원하므로 앞에서 2000명만 불러옵니다.`);
+            names.splice(2000);
           }
 
           createInputs(names);
@@ -487,8 +546,18 @@
       }
     }
 
+    // Fisher-Yates 셔플로 중복 없이 N명 추출
+    function pickWinners(names, count) {
+      const arr = names.slice();
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr.slice(0, count);
+    }
+
     // 드럼롤 효과 함수 (강화 버전 - 5초, 점진적 속도 감소)
-    function startDrumRoll(names, finalWinner) {
+    function startDrumRoll(names, finalWinners) {
       const resultDiv = document.getElementById('result');
       let currentDelay = 50;
       const delayIncrement = 20;
@@ -506,7 +575,7 @@
           if (countdown > 0) {
             resultDiv.textContent = `🎲 ${randomName} 🎲 ... ${countdown}`;
           } else {
-            showWinner(finalWinner);
+            showWinners(finalWinners);
             return;
           }
         } else {
@@ -523,7 +592,7 @@
           }
           setTimeout(drumRollStep, currentDelay);
         } else {
-          showWinner(finalWinner);
+          showWinners(finalWinners);
         }
       }
 
@@ -531,15 +600,33 @@
     }
 
     // 최종 당첨자 발표 함수
-    function showWinner(winner) {
+    function showWinners(winners) {
       const resultDiv = document.getElementById('result');
-
       resultDiv.className = '';
+      resultDiv.innerHTML = '';
 
       document.body.classList.add('celebration-bg');
 
-      resultDiv.textContent = `🎉 당첨자: ${winner} 🎉`;
-      resultDiv.classList.add('winner-animation');
+      if (winners.length === 1) {
+        resultDiv.textContent = `🎉 당첨자: ${winners[0]} 🎉`;
+        resultDiv.classList.add('winner-animation');
+      } else {
+        const title = document.createElement('div');
+        title.className = 'winner-list-title';
+        title.textContent = `🎉 당첨자 (${winners.length}명) 🎉`;
+        resultDiv.appendChild(title);
+
+        const ul = document.createElement('ul');
+        ul.className = 'winner-list';
+        winners.forEach((name, idx) => {
+          const li = document.createElement('li');
+          li.className = 'winner-list-item';
+          li.style.animationDelay = `${idx * 0.1}s`;
+          li.textContent = `${idx + 1}위. ${name}`;
+          ul.appendChild(li);
+        });
+        resultDiv.appendChild(ul);
+      }
 
       createConfetti();
 
@@ -559,17 +646,24 @@
         return;
       }
 
+      const winnerCount = parseInt(document.getElementById('winnerCount').value) || 1;
+      if (winnerCount > names.length) {
+        alert(`당첨 인원(${winnerCount}명)이 유효한 참가자 수(${names.length}명)보다 많습니다.`);
+        return;
+      }
+
       isDrawing = true;
 
       const resultDiv = document.getElementById('result');
-      resultDiv.classList.remove('winner-animation');
+      resultDiv.className = '';
+      resultDiv.innerHTML = '';
 
-      const randomIndex = Math.floor(Math.random() * names.length);
-      const winner = names[randomIndex];
+      const winners = pickWinners(names, winnerCount);
 
-      startDrumRoll(names, winner);
+      startDrumRoll(names, winners);
 
-      results.push({ timestamp: new Date().toLocaleString(), winner });
+      const round = results.length + 1;
+      results.push({ timestamp: new Date().toLocaleString(), round, winners });
 
       setTimeout(() => {
         isDrawing = false;
@@ -577,9 +671,11 @@
     }
 
     function exportToExcel() {
-      let csvContent = "data:text/csv;charset=utf-8,시간,당첨자\n";
+      let csvContent = "data:text/csv;charset=utf-8,\uC2DC\uAC04,\uD68C\uCC28,\uC21C\uC704,\uB2F9\uCCA8\uC790\n";
       results.forEach(row => {
-        csvContent += `${row.timestamp},${row.winner}\n`;
+        row.winners.forEach((name, idx) => {
+          csvContent += `${row.timestamp},${row.round}\uD68C,${idx + 1}\uC704,${name}\n`;
+        });
       });
 
       const pad = (n) => n.toString().padStart(2, '0');
